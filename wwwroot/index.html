@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="sv">
 <head>
+    <meta charset="UTF-8">
     <title>Enigma Simulator</title>
     <style>
         body { font-family: 'Courier New', monospace; background: #222; color: #0f0; text-align: center; margin-top: 50px; }
         
-        /* Behållaren för maskinen */
         .machine-container {
             background: #333;
             width: 500px;
@@ -18,7 +18,6 @@
 
         img { width: 150px; height: 150px; margin-bottom: 20px; }
         
-        /* Resultatrutan ser ut som en gammal skärm */
         #displayScreen { 
             background: #000; 
             border: 4px solid #666; 
@@ -34,8 +33,17 @@
         input { padding: 10px; font-size: 1em; width: 70%; margin-bottom: 10px; }
         
         button { padding: 10px 20px; font-size: 1.1em; cursor: pointer; margin: 5px; font-weight: bold; border-radius: 5px; }
+        
         .lock-btn { background-color: #ff4444; color: white; border: none; }
         .unlock-btn { background-color: #44ff44; color: black; border: none; }
+
+        /* Stil för när en knapp är inaktiverad */
+        button:disabled {
+            background-color: #555;
+            color: #888;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
 
     </style>
 </head>
@@ -48,37 +56,41 @@
 
         <div id="displayScreen">IFMMP!XPSME</div>
         
-        <button class="unlock-btn" onclick="unlockMachine()">🔓 UNLOCK & DECRYPT</button>
+        <button id="btnUnlock" class="unlock-btn" onclick="unlockMachine()">🔓 UNLOCK & DECRYPT</button>
         
         <hr style="border-color: #444; margin: 20px 0;">
 
         <p style="color: #aaa; font-size: 0.8em;">CREATE NEW SECRET:</p>
         <input type="text" id="inputText" placeholder="Write plain text here...">
         <br>
-        <button class="lock-btn" onclick="lockMachine()">🔒 ENCRYPT & LOCK</button>
+        <button id="btnLock" class="lock-btn" onclick="lockMachine()">🔒 ENCRYPT & LOCK</button>
     </div>
 
     <script>
-        // Funktion 1: LÅS UPP (Tar texten på skärmen -> Avkrypterar)
+        // Vi håller koll på tillståndet här:
+        let isLocked = true; 
+
+        // Körs direkt när sidan laddas för att sätta rätt knapp-status
+        updateButtonState();
+
         async function unlockMachine() {
-            // Hämta texten som visas just nu på "skärmen"
+            // STOPP! Om den inte är låst, gör ingenting.
+            if (!isLocked) return;
+
             const currentText = document.getElementById('displayScreen').innerText;
-            
-            // Anropa API:et /decrypt
             const response = await fetch(`/decrypt?text=${encodeURIComponent(currentText)}`);
             const decryptedText = await response.text();
 
-            // Uppdatera skärmen
             document.getElementById('displayScreen').innerText = decryptedText;
-            document.getElementById('displayScreen').style.color = "#44ff44"; // Grön text
-
-            // Byt bild till öppen
+            document.getElementById('displayScreen').style.color = "#44ff44";
             document.getElementById('statusImage').src = 'unlocked.png';
+
+            // Uppdatera tillståndet
+            isLocked = false;
+            updateButtonState();
         }
 
-        // Funktion 2: LÅS (Tar texten i input-rutan -> Krypterar)
         async function lockMachine() {
-            // Hämta texten från input-rutan
             const textInput = document.getElementById('inputText').value;
 
             if (!textInput) {
@@ -86,19 +98,33 @@
                 return;
             }
 
-            // Anropa API:et /encrypt
             const response = await fetch(`/encrypt?text=${encodeURIComponent(textInput)}`);
             const encryptedText = await response.text();
 
-            // Lägg resultatet på stora skärmen
             document.getElementById('displayScreen').innerText = encryptedText;
-            document.getElementById('displayScreen').style.color = "#ff4444"; // Röd text
-
-            // Byt bild till låst
+            document.getElementById('displayScreen').style.color = "#ff4444"; 
             document.getElementById('statusImage').src = 'locked.png';
-
-            // Töm input-rutan för effekt
             document.getElementById('inputText').value = "";
+
+            // Uppdatera tillståndet
+            isLocked = true;
+            updateButtonState();
+        }
+
+        // Hjälpfunktion som gråar ut knapparna beroende på läge
+        function updateButtonState() {
+            const btnUnlock = document.getElementById('btnUnlock');
+            const btnLock = document.getElementById('btnLock');
+
+            if (isLocked) {
+                // Om låst: Man kan låsa upp, men inte låsa igen
+                btnUnlock.disabled = false;
+                btnLock.disabled = true; // Man måste låsa upp innan man skapar ny kod
+            } else {
+                // Om öppen: Man kan inte låsa upp, men man kan låsa
+                btnUnlock.disabled = true;
+                btnLock.disabled = false;
+            }
         }
     </script>
 </body>
