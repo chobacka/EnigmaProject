@@ -74,7 +74,7 @@
         updateButtonState();
 
         async function unlockMachine() {
-            // STOPP! Om den inte är låst, gör ingenting.
+            // Om den inte är låst, gör ingenting.
             if (!isLocked) return;
 
             const currentText = document.getElementById('displayScreen').innerText;

@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+  <Compile Remove="EnigmaTests\**" />
+    <Content Remove="EnigmaTests\**" />
+    <EmbeddedResource Remove="EnigmaTests\**" />
+    <None Remove="EnigmaTests\**" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
   </ItemGroup>
 
