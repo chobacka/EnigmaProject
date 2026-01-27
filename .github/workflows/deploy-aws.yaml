@@ -1,0 +1,34 @@
+name: Deploy to AWS
+on:
+  push:
+    branches: [ "main" ] # Körs BARA när vi mergar till main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Setup .NET 10
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+      
+      # Bygg projektet och skapa en zip-fil
+      - name: Publish and Zip
+        run: |
+          dotnet publish -c Release -o site
+          cd site
+          zip -r ../site.zip *
+          
+      # Skicka till AWS Elastic Beanstalk
+      - name: Deploy to EB
+        uses: einaregilsson/beanstalk-deploy@v21
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          region: "eu-north-1"
+          application_name: "EnigmaApp"      # <--- MÅSTE MATCHA AWS NAMNET
+          environment_name: "EnigmaApp-env"  # <--- MÅSTE MATCHA AWS NAMNET
+          version_label: "v-${{ github.run_id }}"
+          deployment_package: "site.zip"
