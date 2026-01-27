@@ -1,5 +1,10 @@
+using EnigmaAPI;
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
+app.UseFileServer(); 
+app.MapGet("/encrypt", (string text) => EnigmaLogic.Encrypt(text));
+app.MapGet("/decrypt", (string text) => EnigmaLogic.Decrypt(text));
+app.Run();
 
 // Detta gör att vi kan visa index.html och bilder
 app.UseFileServer(); 
