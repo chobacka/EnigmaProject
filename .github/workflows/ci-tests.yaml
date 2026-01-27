@@ -20,10 +20,10 @@ jobs:
         dotnet-version: '8.0.x' 
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore EnigmaProject.sln  # <-- lade till .sln här
 
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build EnigmaProject.sln --no-restore # <-- Och här
 
     - name: Run Tests
       run: dotnet test --no-build --verbosity normal
