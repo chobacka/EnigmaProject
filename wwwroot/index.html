@@ -4,55 +4,101 @@
     <title>Enigma Simulator</title>
     <style>
         body { font-family: 'Courier New', monospace; background: #222; color: #0f0; text-align: center; margin-top: 50px; }
-        img { width: 200px; height: 200px; border: 5px solid #444; border-radius: 10px; margin: 20px; object-fit: contain; background: white; }
-        input { padding: 10px; font-size: 1.2em; width: 300px; }
-        button { padding: 10px 20px; font-size: 1.2em; cursor: pointer; margin: 5px; font-weight: bold; }
-        .encrypt-btn { background-color: #ff4444; color: white; border: none; }
-        .decrypt-btn { background-color: #44ff44; color: black; border: none; }
-        #result { font-size: 2em; margin-top: 30px; font-weight: bold; min-height: 1.5em; color: yellow; }
+        
+        /* Behållaren för maskinen */
+        .machine-container {
+            background: #333;
+            width: 500px;
+            margin: 0 auto;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #555;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+        }
+
+        img { width: 150px; height: 150px; margin-bottom: 20px; }
+        
+        /* Resultatrutan ser ut som en gammal skärm */
+        #displayScreen { 
+            background: #000; 
+            border: 4px solid #666; 
+            color: #0f0; 
+            padding: 20px; 
+            font-size: 1.5em; 
+            font-weight: bold; 
+            min-height: 1.5em; 
+            margin-bottom: 20px;
+            word-wrap: break-word;
+        }
+
+        input { padding: 10px; font-size: 1em; width: 70%; margin-bottom: 10px; }
+        
+        button { padding: 10px 20px; font-size: 1.1em; cursor: pointer; margin: 5px; font-weight: bold; border-radius: 5px; }
+        .lock-btn { background-color: #ff4444; color: white; border: none; }
+        .unlock-btn { background-color: #44ff44; color: black; border: none; }
+
     </style>
 </head>
 <body>
-    <h1>TOP SECRET: ENIGMA MACHINE</h1>
 
-    <img id="enigmaImage" src="unlocked.png" alt="Status">
-    
-    <br>
-    <input type="text" id="inputText" placeholder="Skriv hemligt meddelande...">
-    <br><br>
-    
-    <button class="encrypt-btn" onclick="process('encrypt')">LOCK & ENCRYPT</button>
-    <button class="decrypt-btn" onclick="process('decrypt')">UNLOCK & DECRYPT</button>
+    <div class="machine-container">
+        <h1>ENIGMA MACHINE</h1>
 
-    <div id="result"></div>
+        <img id="statusImage" src="locked.png" alt="Status">
+
+        <div id="displayScreen">IFMMP!XPSME</div>
+        
+        <button class="unlock-btn" onclick="unlockMachine()">🔓 UNLOCK & DECRYPT</button>
+        
+        <hr style="border-color: #444; margin: 20px 0;">
+
+        <p style="color: #aaa; font-size: 0.8em;">CREATE NEW SECRET:</p>
+        <input type="text" id="inputText" placeholder="Write plain text here...">
+        <br>
+        <button class="lock-btn" onclick="lockMachine()">🔒 ENCRYPT & LOCK</button>
+    </div>
 
     <script>
-        async function process(action) {
-            // Hämta texten från rutan
-            const inputVal = document.getElementById('inputText').value;
+        // Funktion 1: LÅS UPP (Tar texten på skärmen -> Avkrypterar)
+        async function unlockMachine() {
+            // Hämta texten som visas just nu på "skärmen"
+            const currentText = document.getElementById('displayScreen').innerText;
             
-            // Om rutan är tom, gör inget
-            if (!inputVal) return;
+            // Anropa API:et /decrypt
+            const response = await fetch(`/decrypt?text=${encodeURIComponent(currentText)}`);
+            const decryptedText = await response.text();
 
-            // Anropa vårt C# API
-            const response = await fetch(`/${action}?text=${encodeURIComponent(inputVal)}`);
-            const data = await response.text();
+            // Uppdatera skärmen
+            document.getElementById('displayScreen').innerText = decryptedText;
+            document.getElementById('displayScreen').style.color = "#44ff44"; // Grön text
 
-            // Visa resultatet
-            document.getElementById('result').innerText = data;
+            // Byt bild till öppen
+            document.getElementById('statusImage').src = 'unlocked.png';
+        }
 
-            // Byt bild och färg beroende på vad vi gjorde
-            const img = document.getElementById('enigmaImage');
-            
-            if (action === 'encrypt') {
-                img.src = 'locked.png';
-                img.style.borderColor = "red";
-                // Rensa inputfältet för effekt
-                document.getElementById('inputText').value = "";
-            } else {
-                img.src = 'unlocked.png';
-                img.style.borderColor = "#0f0";
+        // Funktion 2: LÅS (Tar texten i input-rutan -> Krypterar)
+        async function lockMachine() {
+            // Hämta texten från input-rutan
+            const textInput = document.getElementById('inputText').value;
+
+            if (!textInput) {
+                alert("Please write a message to encrypt first!");
+                return;
             }
+
+            // Anropa API:et /encrypt
+            const response = await fetch(`/encrypt?text=${encodeURIComponent(textInput)}`);
+            const encryptedText = await response.text();
+
+            // Lägg resultatet på stora skärmen
+            document.getElementById('displayScreen').innerText = encryptedText;
+            document.getElementById('displayScreen').style.color = "#ff4444"; // Röd text
+
+            // Byt bild till låst
+            document.getElementById('statusImage').src = 'locked.png';
+
+            // Töm input-rutan för effekt
+            document.getElementById('inputText').value = "";
         }
     </script>
 </body>
