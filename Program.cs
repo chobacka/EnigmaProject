@@ -1,41 +1,36 @@
+using EnigmaAPI;
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
+app.UseFileServer(); 
+app.MapGet("/encrypt", (string text) => EnigmaLogic.Encrypt(text));
+app.MapGet("/decrypt", (string text) => EnigmaLogic.Decrypt(text));
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+// Detta gör att vi kan visa index.html och bilder
+app.UseFileServer(); 
+
+// Endpoint för att KRYPTERA (Flyttar bokstaven framåt, A -> B)
+app.MapGet("/encrypt", (string text) => 
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+    if (string.IsNullOrEmpty(text)) return "";
+    char[] buffer = text.ToCharArray();
+    for (int i = 0; i < buffer.Length; i++)
+    {
+        buffer[i] = (char)(buffer[i] + 1);
+    }
+    return new string(buffer);
+});
+
+// Endpoint för att AVKRYPTERA (Flyttar bokstaven bakåt, B -> A)
+app.MapGet("/decrypt", (string text) => 
+{
+    if (string.IsNullOrEmpty(text)) return "";
+    char[] buffer = text.ToCharArray();
+    for (int i = 0; i < buffer.Length; i++)
+    {
+        buffer[i] = (char)(buffer[i] - 1);
+    }
+    return new string(buffer);
+});
+
+app.Run();
