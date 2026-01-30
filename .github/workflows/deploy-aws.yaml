@@ -1,8 +1,8 @@
-name: Deploy to AWS (Enigma 2.0)
+name: Deploy to AWS (Enigma 3.0)
 
 on:
   push:
-    branches: [ "main" ] # Körs BARA vid merge till main
+    branches: [ "main" ]
 
 jobs:
   deploy:
@@ -14,12 +14,13 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       
+      # FIX: pekar på .csproj filen direkt för att slippa varningar
       - name: Publish and Zip
         run: |
-          dotnet publish -c Release -o site
+          dotnet publish EnigmaAPI/EnigmaAPI.csproj -c Release -o site
           cd site
           zip -r ../site.zip *
-          
+
       - name: Deploy to EB
         uses: einaregilsson/beanstalk-deploy@v21
         with:
@@ -28,16 +29,15 @@ jobs:
           region: "eu-north-1"
           application_name: "EnigmaApp"
           environment_name: "EnigmaApp-env"
-          # Notera: Matrix-namn på versionen!
-          version_label: "v2-matrix-${{ github.run_id }}-${{ github.run_attempt }}"
+          version_label: "v3-cyber-${{ github.run_id }}-${{ github.run_attempt }}"
           deployment_package: "site.zip"
 
-      # --- HÄR ÄR NYHETEN: DISCORD NOTIS ---
+      # FIX: Uppdaterad text till V3.0
       - name: Discord Notification
-        if: always() # Körs även om deployen kraschar
+        if: always()
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: info
-          details: "🚀 Enigma V2.0 (Hacker Edition) deployed successfully!"
+          details: "🚀 Enigma V3.0 deployed successfully!"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           avatarUrl: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
