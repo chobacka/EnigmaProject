@@ -26,7 +26,7 @@ jobs:
         run: |
           # Anropar API som ligger live på AWS för att kryptera
           # AWS länk
-          API_URL="http://enigmaapp-env.eba-bzpd3etd.eu-north-1.elasticbeanstalk.com/"
+          API_URL="http://enigmaapp-env.eba-bzpd3etd.eu-north-1.elasticbeanstalk.com"
           
           # Hämta meddelandet
           MSG="${{ steps.mission.outputs.plain_text }}"
