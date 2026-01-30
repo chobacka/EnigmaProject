@@ -21,7 +21,7 @@ jobs:
           SECRET=${MSGS[$RANDOM % ${#MSGS[@]}]}
           echo "plain_text=$SECRET" >> $GITHUB_OUTPUT
 
-      - name: Encrypt Mission (Call API)
+      - name: Encrypt Mission (Debug Mode)
         id: encrypt
         run: |
           # Anropar API som ligger live på AWS för att kryptera
@@ -31,11 +31,30 @@ jobs:
           # Hämta meddelandet
           MSG="${{ steps.mission.outputs.plain_text }}"
           
-          # Curl request för att kryptera
-          # Använder -G --data-urlencode för att hantera mellanslag snyggt
-          ENCRYPTED=$(curl -G --data-urlencode "text=$MSG" "$API_URL/encrypt")
+          echo "--- DEBUG INFO ---"
+          echo "Connecting to: $API_URL/encrypt"
+          echo "Message to encrypt: $MSG"
           
-          echo "encrypted_text=$ENCRYPTED" >> $GITHUB_OUTPUT
+          # 2. Kör CURL med -v (verbose) för att se om det kraschar
+          # Vi sparar svaret i en variabel
+          RESPONSE=$(curl -v -G --data-urlencode "text=$MSG" "$API_URL/encrypt" 2>&1)
+          
+          echo "Full Response from Server:"
+          echo "$RESPONSE"
+          
+          # 3. Försök fiska ut den sista raden (som borde vara koden)
+          # Detta är en enkel hack-lösning för att fånga texten även om curl babblar
+          CLEAN_CODE=$(curl -s -G --data-urlencode "text=$MSG" "$API_URL/encrypt")
+          
+          echo "Clean Code extracted: $CLEAN_CODE"
+          echo "--- END DEBUG ---"
+
+          # 4. Skicka till output (om den är tom sätter vi en feltext)
+          if [ -z "$CLEAN_CODE" ]; then
+            echo "encrypted_text=ERROR_CHECK_LOGS" >> $GITHUB_OUTPUT
+          else
+            echo "encrypted_text=$CLEAN_CODE" >> $GITHUB_OUTPUT
+          fi
 
       - name: Send to Discord
         uses: rjstone/discord-webhook-notify@v1
