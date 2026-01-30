@@ -10,14 +10,17 @@
             background: #f0f0f0; 
             color: #333; 
             text-align: center; 
-            margin-top: 50px; 
-            transition: all 0.5s ease;
+            margin: 0; 
+            overflow: hidden; /* Förhindra scrollbars för Matrix-effekten */
+            transition: background 0.5s ease;
         }
         
         .machine-container {
+            position: relative;
+            z-index: 10; /* Måste ligga ovanför Matrix-regnet */
             background: #fff;
             width: 500px;
-            margin: 0 auto;
+            margin: 50px auto;
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
@@ -57,42 +60,48 @@
             z-index: 100;
         }
 
-        /* --- RETRO HACKER MODE (V2) --- */
+        /* --- MATRIX CANVAS (Ligger i bakgrunden) --- */
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1; /* Ligger bakom boxen men framför body */
+            opacity: 0; /* Osynlig i clean mode */
+            transition: opacity 1s;
+        }
+
+        /* --- RETRO HACKER MODE (V2/V3) --- */
         body.retro {
             background-color: #000;
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            overflow: hidden;
+        }
+
+        body.retro canvas {
+            opacity: 0.8; /* Visa Matrix-regnet! */
         }
 
         /* Scanlines overlay */
-        body.retro::before {
+        body.retro::after {
             content: " ";
             display: block;
             position: absolute;
             top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
+            z-index: 20; /* Ovanför allt */
             background-size: 100% 2px, 3px 100%;
             pointer-events: none;
         }
 
-        @keyframes flicker {
-            0% { opacity: 0.97; } 5% { opacity: 0.95; } 10% { opacity: 0.9; } 
-            50% { opacity: 0.95; } 80% { opacity: 0.9; } 100% { opacity: 0.97; }
-        }
-
         body.retro .machine-container {
-            background: #000;
+            background: rgba(0, 0, 0, 0.9); /* Lite genomskinlig så man anar koden bakom */
             border: 4px solid #0f0;
             box-shadow: 0 0 20px #0f0, inset 0 0 20px #0f0;
-            animation: flicker 0.15s infinite;
             border-radius: 5px;
         }
 
         body.retro #displayScreen {
             background: #000;
-            color: #0f0 !important; /* Tvinga grön text i retro */
+            color: #0f0 !important; 
             border: 2px dashed #0f0;
             text-shadow: 0 0 5px #0f0;
         }
@@ -117,16 +126,19 @@
     </style>
 </head>
 <body>
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <button class="mode-switch" onclick="toggleRetro()">🔄 TOGGLE HACKER MODE</button>
+
     <audio id="bgMusic" loop>
-    <source src="hackermusic.mp3" type="audio/mpeg">
-</audio>
-<audio id="sfxSwitch">
-    <source src="powerup.mp3" type="audio/mpeg">
-</audio>
-
-<img id="victoryDance" src="dance.gif" style="display:none; position:fixed; bottom:0; right:0; width:200px; z-index:999;">
-
-    <button class="mode-switch" onclick="toggleRetro()">🔄 TOGGLE SECURE TERMINAL</button>
+        <source src="hackermusic.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="sfxSwitch">
+        <source src="powerup.mp3" type="audio/mpeg">
+    </audio>
+    
+    <img id="victoryDance" src="dance.gif" style="display:none; position:fixed; bottom:0; right:0; width:200px; z-index:999;">
 
     <div class="machine-container">
         <h1 id="headerTitle">ENIGMA V1.0</h1>
@@ -145,16 +157,16 @@
         <button id="btnLock" class="lock-btn" onclick="lockMachine()">🔒 ENCRYPT & LOCK</button>
     </div>
 
-<script>
+    <script>
+        // --- LOGIK FÖR ENIGMA ---
         let isLocked = true; 
         let isRetro = false;
         
-        // Hämta ljuden
         const music = document.getElementById('bgMusic');
         const sfx = document.getElementById('sfxSwitch');
         const dancer = document.getElementById('victoryDance');
-
-        music.volume = 0.3; // Inte för högt!
+        
+        if(music) music.volume = 0.2;
 
         updateButtonState();
 
@@ -164,18 +176,17 @@
             
             const title = document.getElementById('headerTitle');
             
-            // SPELA LJUD!
-            sfx.currentTime = 0;
-            sfx.play();
+            if(sfx) { sfx.currentTime = 0; sfx.play(); }
 
             if(isRetro) {
                 title.innerText = "ENIGMA TERMINAL V3.0";
-                music.play().catch(e => console.log("Chrome kräver klick först:", e));
+                if(music) music.play().catch(e => console.log("Chrome kräver klick:", e));
+                startMatrix(); // Starta regnet!
             } else {
                 title.innerText = "ENIGMA V1.0";
-                music.pause();
-                music.currentTime = 0;
-                dancer.style.display = "none"; // Göm dansaren om vi byter tillbaka
+                if(music) { music.pause(); music.currentTime = 0; }
+                dancer.style.display = "none";
+                stopMatrix(); // Stoppa regnet!
             }
         }
 
@@ -195,10 +206,9 @@
             isLocked = false;
             updateButtonState();
 
-            // OM VI ÄR I HACKER MODE -> VISA DANSEN!
-            if (isRetro) {
+            if (isRetro && dancer) {
                 dancer.style.display = "block";
-                setTimeout(() => { dancer.style.display = "none"; }, 5000); // Dansa i 5 sekunder
+                setTimeout(() => { dancer.style.display = "none"; }, 5000); 
             }
         }
 
@@ -219,11 +229,70 @@
             isLocked = true;
             updateButtonState();
             
-            dancer.style.display = "none"; // Sluta dansa när vi låser
+            if(dancer) dancer.style.display = "none";
         }
 
         function updateButtonState() {
             document.getElementById('btnUnlock').disabled = !isLocked;
             document.getElementById('btnLock').disabled = isLocked;
         }
+
+        // --- MATRIX RAIN KODEN ---
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        let matrixInterval;
+
+        // Gör canvas fullstorlek
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Tecken att använda (Katakana + Latin)
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%";
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        
+        // Håller koll på y-positionen för varje kolumn
+        const drops = [];
+        for (let x = 0; x < columns; x++) drops[x] = 1;
+
+        function drawMatrix() {
+            // Rita svart med lite transparens för att skapa spår-effekt
+            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#0F0"; // Hacker Green
+            ctx.font = fontSize + "px arial";
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters.charAt(Math.floor(Math.random() * letters.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                // Slumpa när droppen ska börja om från toppen
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        function startMatrix() {
+            if(!matrixInterval) {
+                matrixInterval = setInterval(drawMatrix, 33);
+            }
+        }
+
+        function stopMatrix() {
+            clearInterval(matrixInterval);
+            matrixInterval = null;
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Rensa skärmen
+        }
+
+        // Fixa om man ändrar storlek på fönstret
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
     </script>
+</body>
+</html>
