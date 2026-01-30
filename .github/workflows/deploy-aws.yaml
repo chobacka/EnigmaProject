@@ -14,10 +14,10 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       
-      # FIX: pekar på .csproj filen direkt för att slippa varningar
       - name: Publish and Zip
         run: |
-          dotnet publish EnigmaAPI/EnigmaAPI.csproj -c Release -o site
+          # Pekar direkt på filen eftersom den ligger i roten
+          dotnet publish EnigmaAPI.csproj -c Release -o site
           cd site
           zip -r ../site.zip *
 
