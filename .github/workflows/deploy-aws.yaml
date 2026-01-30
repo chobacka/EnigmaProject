@@ -28,15 +28,16 @@ jobs:
           region: "eu-north-1"
           application_name: "EnigmaApp"
           environment_name: "EnigmaApp-env"
+          # Notera: Matrix-namn på versionen!
           version_label: "v2-matrix-${{ github.run_id }}-${{ github.run_attempt }}"
           deployment_package: "site.zip"
 
-      # --- DISCORD NOTIS ---
+      # --- HÄR ÄR NYHETEN: DISCORD NOTIS ---
       - name: Discord Notification
-        if: always()  # Körs även om deployen kraschar
+        if: always() # Körs även om deployen kraschar
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: info
-          details: "🚀 Enigma V2.0 deployed successfully!"
+          details: "🚀 Enigma V2.0 (Hacker Edition) deployed successfully!"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           avatarUrl: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
