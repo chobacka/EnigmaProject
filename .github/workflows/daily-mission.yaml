@@ -1,0 +1,47 @@
+name: Daily Secret Mission
+
+on:
+  schedule:
+    # Körs klockan 08:00 UTC varje dag
+    - cron: '0 8 * * *'
+  
+  # Gör så vi kan köra den manuellt också för att testa
+  workflow_dispatch:
+
+jobs:
+  send-mission:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Mission
+        id: mission
+        run: |
+          # Lista på hemliga meddelanden
+          MSGS=("ATTACK AT DAWN" "BUY MORE COFFEE" "DEPLOY TO PROD" "WATCH YOUR BACK" "SWEET BURGERS TONIGHT" "MEET AT THE OLD MILL" "THE EAGLE HAS LANDED" "CODE RED ALERT" "MISSION ACCOMPLISHED" "STAY VIGILANT")
+          # Välj ett slumpmässigt
+          SECRET=${MSGS[$RANDOM % ${#MSGS[@]}]}
+          echo "plain_text=$SECRET" >> $GITHUB_OUTPUT
+
+      - name: Encrypt Mission (Call API)
+        id: encrypt
+        run: |
+          # Anropar API som ligger live på AWS för att kryptera
+          # AWS länk
+          API_URL="http://enigmaapp-env.eba-bzpd3etd.eu-north-1.elasticbeanstalk.com/"
+          
+          # Hämta meddelandet
+          MSG="${{ steps.mission.outputs.plain_text }}"
+          
+          # Curl request för att kryptera
+          # Använder -G --data-urlencode för att hantera mellanslag snyggt
+          ENCRYPTED=$(curl -G --data-urlencode "text=$MSG" "$API_URL/encrypt")
+          
+          echo "encrypted_text=$ENCRYPTED" >> $GITHUB_OUTPUT
+
+      - name: Send to Discord
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: warn
+          username: "HQ Commander"
+          details: "🕵️‍♂️ **INTERCEPTED SIGNAL**\n\nCode: `${{ steps.encrypt.outputs.encrypted_text }}`\n\nDecrypt this immediately at the terminal!"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          avatarUrl: "https://cdn-icons-png.flaticon.com/512/3069/3069172.png"
