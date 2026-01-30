@@ -33,10 +33,10 @@ jobs:
 
       # --- DISCORD NOTIS ---
       - name: Discord Notification
-        if: always() # Körs även om deployen kraschar
+        if: always()  # Körs även om deployen kraschar
         uses: rjstone/discord-webhook-notify@v1
         with:
           severity: info
-          details: "🚀 Enigma V2.0 (Hacker Edition) deployed successfully!"
+          details: "🚀 Enigma V2.0 deployed successfully!"
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           avatarUrl: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
