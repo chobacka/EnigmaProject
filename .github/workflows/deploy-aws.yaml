@@ -1,7 +1,8 @@
-name: Deploy to AWS
+name: Deploy to AWS (Enigma 2.0)
+
 on:
   push:
-    branches: [ "main" ] # Körs BARA när vi mergar till main
+    branches: [ "main" ] # Körs BARA vid merge till main
 
 jobs:
   deploy:
@@ -9,26 +10,34 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      # Setup .NET 10
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '10.0.x'
       
-      # Bygg projektet och skapa en zip-fil
       - name: Publish and Zip
         run: |
           dotnet publish -c Release -o site
           cd site
           zip -r ../site.zip *
           
-      # Skicka till AWS Elastic Beanstalk
       - name: Deploy to EB
         uses: einaregilsson/beanstalk-deploy@v21
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           region: "eu-north-1"
-          application_name: "EnigmaApp"      # <--- MÅSTE MATCHA AWS NAMNET
-          environment_name: "EnigmaApp-env"  # <--- MÅSTE MATCHA AWS NAMNET
-          version_label: "v-${{ github.run_id }}-${{ github.run_attempt }}"
+          application_name: "EnigmaApp"
+          environment_name: "EnigmaApp-env"
+          # Notera: Matrix-namn på versionen!
+          version_label: "v2-matrix-${{ github.run_id }}-${{ github.run_attempt }}"
           deployment_package: "site.zip"
+
+      # --- HÄR ÄR NYHETEN: DISCORD NOTIS ---
+      - name: Discord Notification
+        if: always() # Körs även om deployen kraschar
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          severity: info
+          details: "🚀 Enigma V2.0 (Hacker Edition) deployed successfully!"
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          avatarUrl: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"

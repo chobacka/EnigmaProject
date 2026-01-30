@@ -4,127 +4,196 @@
     <meta charset="UTF-8">
     <title>Enigma Simulator</title>
     <style>
-        body { font-family: 'Courier New', monospace; background: #222; color: #0f0; text-align: center; margin-top: 50px; }
+        /* --- GRUNDSTIL (V1 - CLEAN) --- */
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #f0f0f0; 
+            color: #333; 
+            text-align: center; 
+            margin-top: 50px; 
+            transition: all 0.5s ease;
+        }
         
         .machine-container {
-            background: #333;
+            background: #fff;
             width: 500px;
             margin: 0 auto;
             padding: 30px;
             border-radius: 15px;
-            border: 2px solid #555;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+            transition: all 0.3s ease;
         }
 
-        img { width: 150px; height: 150px; margin-bottom: 20px; }
-        
         #displayScreen { 
-            background: #000; 
-            border: 4px solid #666; 
-            color: #0f0; 
+            background: #eee; 
+            border: 2px solid #ccc; 
+            color: #333; 
             padding: 20px; 
             font-size: 1.5em; 
             font-weight: bold; 
             min-height: 1.5em; 
             margin-bottom: 20px;
             word-wrap: break-word;
+            border-radius: 5px;
         }
 
-        input { padding: 10px; font-size: 1em; width: 70%; margin-bottom: 10px; }
-        
-        button { padding: 10px 20px; font-size: 1.1em; cursor: pointer; margin: 5px; font-weight: bold; border-radius: 5px; }
-        
-        .lock-btn { background-color: #ff4444; color: white; border: none; }
-        .unlock-btn { background-color: #44ff44; color: black; border: none; }
+        button { padding: 10px 20px; font-size: 1.1em; cursor: pointer; margin: 5px; font-weight: bold; border-radius: 5px; border: none; }
+        .lock-btn { background-color: #ff4444; color: white; }
+        .unlock-btn { background-color: #44ff44; color: black; }
+        button:disabled { background-color: #ccc; color: #666; cursor: not-allowed; }
+        input { padding: 10px; font-size: 1em; width: 70%; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }
 
-        /* Stil för när en knapp är inaktiverad */
-        button:disabled {
-            background-color: #555;
-            color: #888;
-            cursor: not-allowed;
-            opacity: 0.6;
+        /* --- MODE SWITCH BUTTON --- */
+        .mode-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: #fff;
+            font-size: 0.8em;
+            padding: 8px 15px;
+            border-radius: 20px;
+            z-index: 100;
         }
+
+        /* --- RETRO HACKER MODE (V2) --- */
+        body.retro {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        /* Scanlines overlay */
+        body.retro::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.97; } 5% { opacity: 0.95; } 10% { opacity: 0.9; } 
+            50% { opacity: 0.95; } 80% { opacity: 0.9; } 100% { opacity: 0.97; }
+        }
+
+        body.retro .machine-container {
+            background: #000;
+            border: 4px solid #0f0;
+            box-shadow: 0 0 20px #0f0, inset 0 0 20px #0f0;
+            animation: flicker 0.15s infinite;
+            border-radius: 5px;
+        }
+
+        body.retro #displayScreen {
+            background: #000;
+            color: #0f0 !important; /* Tvinga grön text i retro */
+            border: 2px dashed #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+
+        body.retro input {
+            background: transparent;
+            border: 2px solid #0f0;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+        }
+
+        body.retro button {
+            border-radius: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 5px #0f0;
+        }
+        
+        body.retro .unlock-btn { background: #003300; color: #0f0; border: 1px solid #0f0; }
+        body.retro .lock-btn { background: #330000; color: #f00; border: 1px solid #f00; }
 
     </style>
 </head>
 <body>
 
-    <div class="machine-container">
-        <h1>ENIGMA MACHINE</h1>
+    <button class="mode-switch" onclick="toggleRetro()">🔄 TOGGLE SECURE TERMINAL</button>
 
-        <img id="statusImage" src="locked.png" alt="Status">
+    <div class="machine-container">
+        <h1 id="headerTitle">ENIGMA V1.0</h1>
+
+        <img id="statusImage" src="locked.png" alt="Status" style="width:150px; margin-bottom:20px;">
 
         <div id="displayScreen">IFMMP!XPSME</div>
         
         <button id="btnUnlock" class="unlock-btn" onclick="unlockMachine()">🔓 UNLOCK & DECRYPT</button>
         
-        <hr style="border-color: #444; margin: 20px 0;">
+        <hr style="border-color: #888; margin: 20px 0;">
 
-        <p style="color: #aaa; font-size: 0.8em;">CREATE NEW SECRET:</p>
+        <p style="color: inherit; font-size: 0.8em;">CREATE NEW SECRET:</p>
         <input type="text" id="inputText" placeholder="Write plain text here...">
         <br>
         <button id="btnLock" class="lock-btn" onclick="lockMachine()">🔒 ENCRYPT & LOCK</button>
     </div>
 
     <script>
-        // Vi håller koll på tillståndet här:
         let isLocked = true; 
+        let isRetro = false;
 
-        // Körs direkt när sidan laddas för att sätta rätt knapp-status
         updateButtonState();
 
+        function toggleRetro() {
+            isRetro = !isRetro;
+            document.body.classList.toggle('retro');
+            
+            const title = document.getElementById('headerTitle');
+            if(isRetro) {
+                title.innerText = "ENIGMA TERMINAL V2.0";
+            } else {
+                title.innerText = "ENIGMA V1.0";
+            }
+        }
+
         async function unlockMachine() {
-            // Om den inte är låst, gör ingenting.
             if (!isLocked) return;
 
             const currentText = document.getElementById('displayScreen').innerText;
             const response = await fetch(`/decrypt?text=${encodeURIComponent(currentText)}`);
             const decryptedText = await response.text();
 
-            document.getElementById('displayScreen').innerText = decryptedText;
-            document.getElementById('displayScreen').style.color = "#44ff44";
+            const screen = document.getElementById('displayScreen');
+            screen.innerText = decryptedText;
+            
+            // Hantera färger beroende på läge
+            if(!isRetro) screen.style.color = "#44ff44"; // Vanlig grön
+            
             document.getElementById('statusImage').src = 'unlocked.png';
-
-            // Uppdatera tillståndet
             isLocked = false;
             updateButtonState();
         }
 
         async function lockMachine() {
             const textInput = document.getElementById('inputText').value;
-
-            if (!textInput) {
-                alert("Please write a message to encrypt first!");
-                return;
-            }
+            if (!textInput) { alert("Please write a message!"); return; }
 
             const response = await fetch(`/encrypt?text=${encodeURIComponent(textInput)}`);
             const encryptedText = await response.text();
 
-            document.getElementById('displayScreen').innerText = encryptedText;
-            document.getElementById('displayScreen').style.color = "#ff4444"; 
+            const screen = document.getElementById('displayScreen');
+            screen.innerText = encryptedText;
+
+            if(!isRetro) screen.style.color = "#ff4444"; // Vanlig röd
+
             document.getElementById('statusImage').src = 'locked.png';
             document.getElementById('inputText').value = "";
-
-            // Uppdatera tillståndet
             isLocked = true;
             updateButtonState();
         }
 
-        // Hjälpfunktion som gråar ut knapparna beroende på läge
         function updateButtonState() {
-            const btnUnlock = document.getElementById('btnUnlock');
-            const btnLock = document.getElementById('btnLock');
-
-            if (isLocked) {
-                // Om låst: Man kan låsa upp, men inte låsa igen
-                btnUnlock.disabled = false;
-                btnLock.disabled = true; // Man måste låsa upp innan man skapar ny kod
-            } else {
-                // Om öppen: Man kan inte låsa upp, men man kan låsa
-                btnUnlock.disabled = true;
-                btnLock.disabled = false;
-            }
+            document.getElementById('btnUnlock').disabled = !isLocked;
+            document.getElementById('btnLock').disabled = isLocked;
         }
     </script>
 </body>
